@@ -1,3 +1,4 @@
+// ==================== 全局变量 ====================
 const API_URL = 'https://69c496238a5b6e2dec2ae93e.mockapi.io/heritage';  // 请替换为你的 mockapi.io 地址
 let heritageData = [];
 let radarChart, mapChart, provinceChart, graphChart, forecastChart;
@@ -25,7 +26,6 @@ async function fetchHeritages() {
         renderWarningCards();
         drawGraph();
         updateAISuggestions();
-        // 更新雷达图（使用第一个非遗）
         if (heritageData.length > 0) {
             const first = heritageData[0];
             document.getElementById('evalSelect').value = first.name;
@@ -115,13 +115,7 @@ function updateStatsCards() {
     document.getElementById('totalHeat').innerText = currentHeat.toFixed(1) + '亿+';
     document.getElementById('partnerCount').innerText = currentPartner;
     // 濒危数量
-    const endangered = heritageData.filter(h => {
-        const age = h.details?.age || 60;
-        const apps = h.details?.apprentices || 0;
-        const acts = h.details?.activitiesPerYear || 10;
-        const index = (age/100) + (5-Math.min(apps,5))/5 + (20-Math.min(acts,20))/20;
-        return index > 1.2;
-    });
+    const endangered = heritageData.filter(h => getEndangeredIndex(h) > 1.2);
     document.getElementById('endangeredCount').innerText = endangered.length;
 }
 
@@ -143,6 +137,55 @@ function showModal(heritage) {
     modal.classList.add('flex');
 }
 
+// ==================== 濒危指数计算 ====================
+function getEndangeredIndex(h) {
+    const age = h.details?.age || 60;
+    const apps = h.details?.apprentices || 0;
+    const acts = h.details?.activitiesPerYear || 10;
+    return (age/100) + (5-Math.min(apps,5))/5 + (20-Math.min(acts,20))/20;
+}
+
+// ==================== 美化版预警卡片 ====================
+function renderWarningCards() {
+    const container = document.getElementById('warningCards');
+    container.innerHTML = '';
+    const endangered = heritageData.filter(h => getEndangeredIndex(h) > 1.2).sort((a,b) => getEndangeredIndex(b) - getEndangeredIndex(a));
+    if (endangered.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center text-green-600 bg-white p-8 rounded shadow">✅ 暂无濒危非遗，保护状况良好！</div>';
+        return;
+    }
+    endangered.forEach(h => {
+        const index = getEndangeredIndex(h);
+        const percent = Math.min(100, Math.round(index * 80)); // 映射到0-100%
+        let levelColor = 'bg-red-500';
+        let levelText = '高危';
+        if (index < 1.4) { levelColor = 'bg-orange-500'; levelText = '中危'; }
+        if (index < 1.2) { levelColor = 'bg-yellow-500'; levelText = '关注'; }
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded shadow p-4 border-l-8 border-red-500 endangered-card';
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <h3 class="font-bold text-xl">${escapeHtml(h.name)}</h3>
+                <span class="px-2 py-1 rounded-full text-xs font-bold text-white ${levelColor}">${levelText}</span>
+            </div>
+            <p class="text-gray-600 text-sm mt-1">${escapeHtml(h.province)} · ${escapeHtml(h.category)}</p>
+            <div class="mt-3 space-y-1 text-sm">
+                <div>传承人年龄：<span class="font-medium">${h.details.age || '?'}</span> 岁</div>
+                <div>徒弟数量：<span class="font-medium">${h.details.apprentices || 0}</span> 人</div>
+                <div>年均活动：<span class="font-medium">${h.details.activitiesPerYear || 0}</span> 次</div>
+            </div>
+            <div class="mt-3">
+                <div class="flex justify-between text-xs text-gray-600 mb-1"><span>濒危指数</span><span>${index.toFixed(2)}</span></div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="progress-bar ${levelColor} h-2 rounded-full" style="width: ${percent}%"></div>
+                </div>
+            </div>
+            <button class="mt-3 text-sm text-blue-600 border border-blue-600 px-3 py-1 rounded hover:bg-blue-600 hover:text-white transition" onclick="alert('建议立即启动数字化抢救记录，并增加传承人培养投入。')">查看保护建议</button>
+        `;
+        container.appendChild(card);
+    });
+}
+
 // ==================== 图表绘制 ====================
 function drawProvinceChart() {
     const provinceCount = {};
@@ -161,35 +204,6 @@ function drawProvinceChart() {
         xAxis: { type: 'category', data: provinces, axisLabel: { rotate: 45 } },
         yAxis: { type: 'value' },
         series: [{ type: 'bar', data: counts, itemStyle: { color: '#3b82f6', borderRadius: [5,5,0,0] } }]
-    });
-}
-
-function renderWarningCards() {
-    const container = document.getElementById('warningCards');
-    container.innerHTML = '';
-    const endangered = heritageData.filter(h => {
-        const age = h.details?.age || 60;
-        const apps = h.details?.apprentices || 0;
-        const acts = h.details?.activitiesPerYear || 10;
-        const index = (age/100) + (5-Math.min(apps,5))/5 + (20-Math.min(acts,20))/20;
-        return index > 1.2;
-    });
-    if (endangered.length === 0) {
-        container.innerHTML = '<div class="col-span-full text-center text-green-600">✅ 暂无濒危非遗，保护状况良好！</div>';
-        return;
-    }
-    endangered.forEach(h => {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded shadow p-4 border-l-4 border-red-500';
-        card.innerHTML = `
-            <h3 class="font-bold text-xl">${h.name}</h3>
-            <p class="text-gray-600">传承人年龄：${h.details?.age || '?'}岁</p>
-            <p class="text-gray-600">徒弟数量：${h.details?.apprentices || 0}人</p>
-            <p class="text-gray-600">年均活动：${h.details?.activitiesPerYear || 0}次</p>
-            <p class="text-red-600 font-bold mt-2">⚠️ 濒危等级：高</p>
-            <button class="mt-2 text-sm text-blue-600" onclick="alert('建议立即启动数字化抢救记录，并增加传承人培养投入。')">查看保护建议</button>
-        `;
-        container.appendChild(card);
     });
 }
 
@@ -226,11 +240,10 @@ function drawGraph() {
 function drawForecast() {
     const historyMonths = ['10月', '11月', '12月', '1月', '2月', '3月'];
     const historyData = trendData;
-    // 简单预测：使用最后3个月的平均值作为下月预测，并向下延伸两个月
     const lastThree = historyData.slice(-3);
     const avg = lastThree.reduce((a,b)=>a+b,0)/3;
     const forecastMonths = ['4月', '5月', '6月'];
-    const forecastData = [avg, avg*1.05, avg*1.08];  // 模拟小幅增长
+    const forecastData = [avg, avg*1.05, avg*1.08];
     const allMonths = [...historyMonths, ...forecastMonths];
     const allData = [...historyData, ...forecastData];
     const chartDom = document.getElementById('forecastChart');
@@ -249,46 +262,108 @@ function drawForecast() {
     });
 }
 
+// ==================== AI 多模块建议 ====================
 function updateAISuggestions() {
-    const container = document.getElementById('aiSuggestions');
-    const ul = container.querySelector('ul');
-    if (!ul) return;
-    ul.innerHTML = '';
-    // 基于实时数据生成动态建议
+    const container = document.getElementById('aiSuggestions').querySelector('ul');
+    if (!container) return;
+    container.innerHTML = '';
     const suggestions = [];
-    // 1. 检测濒危项目
-    const endangered = heritageData.filter(h => {
-        const age = h.details?.age || 60;
-        const apps = h.details?.apprentices || 0;
-        const acts = h.details?.activitiesPerYear || 10;
-        return (age/100) + (5-Math.min(apps,5))/5 + (20-Math.min(acts,20))/20 > 1.2;
-    });
+    const endangered = heritageData.filter(h => getEndangeredIndex(h) > 1.2);
     if (endangered.length > 0) {
         suggestions.push(`⚠️ 检测到 ${endangered.length} 项濒危非遗（如 ${endangered[0].name}），建议立即启动数字化抢救记录，增加传承人培养投入。`);
     }
-    // 2. 热度下降预警
     if (trendData[trendData.length-1] < trendData[0]) {
         suggestions.push('📉 近半年整体传播热度呈下降趋势，建议加强新媒体宣传，制作短视频内容。');
     } else {
         suggestions.push('📈 近期传播热度稳步上升，可趁势推出数字藏品或文创产品，扩大影响力。');
     }
-    // 3. 价值评分分布建议
     const lowScore = heritageData.filter(h => h.totalScore < 70);
     if (lowScore.length > 0) {
         suggestions.push(`💡 ${lowScore.length} 项非遗综合价值评分偏低，建议深入挖掘文化内涵，优化传承与传播方式。`);
     }
-    // 4. 省份分布提示
     const provinceCount = {};
     heritageData.forEach(h => { provinceCount[h.province] = (provinceCount[h.province] || 0) + 1; });
     const maxProvince = Object.keys(provinceCount).reduce((a,b) => provinceCount[a] > provinceCount[b] ? a : b);
     suggestions.push(`📍 ${maxProvince} 省非遗资源最丰富，可重点打造“数字非遗+文旅”示范项目。`);
-
     suggestions.forEach(s => {
         const li = document.createElement('li');
-        li.className = 'list-disc list-inside text-gray-700';
+        li.className = 'list-disc list-inside text-gray-700 mb-1';
         li.innerText = s;
-        ul.appendChild(li);
+        container.appendChild(li);
     });
+}
+
+// 文创灵感生成
+function generateCreative() {
+    const select = document.getElementById('evalSelect');
+    const name = select.value;
+    const heritage = heritageData.find(h => h.name === name);
+    if (!heritage) return;
+    const ideas = [
+        `将${heritage.name}的传统纹样融入现代服饰设计，打造国潮系列。`,
+        `开发${heritage.name}主题的AR互动体验，让用户通过手机感受技艺魅力。`,
+        `设计${heritage.name}数字藏品，限量发行，提升年轻群体关注度。`,
+        `结合${heritage.name}的元素，创作联名文具、家居用品，拓宽消费场景。`
+    ];
+    const randomIdea = ideas[Math.floor(Math.random() * ideas.length)];
+    document.getElementById('creativeResult').innerHTML = `<div class="bg-purple-50 p-2 rounded">✨ ${randomIdea}</div>`;
+}
+
+// 传承路径规划
+function generatePath() {
+    const select = document.getElementById('evalSelect');
+    const name = select.value;
+    const heritage = heritageData.find(h => h.name === name);
+    if (!heritage) return;
+    const path = `为${heritage.name}规划的传承路径：
+1. 建立“非遗传承基地”，与高校合作开设传习班；
+2. 利用数字技术记录完整技艺流程，形成教学资源库；
+3. 鼓励年轻传承人参与新媒体传播，提升项目曝光度；
+4. 设立传承人专项基金，对优秀徒弟给予奖励。`;
+    document.getElementById('pathResult').innerHTML = `<div class="bg-green-50 p-2 rounded">🎓 ${path}</div>`;
+}
+
+// ==================== AI 对话助手 ====================
+function initChat() {
+    const input = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendChatBtn');
+    const chatBox = document.getElementById('chatBox');
+    sendBtn.addEventListener('click', () => sendMessage());
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    function sendMessage() {
+        const msg = input.value.trim();
+        if (!msg) return;
+        appendMessage(msg, 'user');
+        input.value = '';
+        setTimeout(() => {
+            const reply = generateAIResponse(msg);
+            appendMessage(reply, 'ai');
+        }, 500);
+    }
+    function appendMessage(text, type) {
+        const div = document.createElement('div');
+        div.className = `chat-message ${type === 'user' ? 'chat-user' : 'chat-ai'} self-${type === 'user' ? 'end' : 'start'}`;
+        div.innerText = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+    function generateAIResponse(question) {
+        const lower = question.toLowerCase();
+        if (lower.includes('川江号子') || lower.includes('保护')) {
+            return '川江号子作为长江流域重要非遗，目前面临传承人老龄化问题。建议：1. 数字化记录全部唱腔；2. 与音乐学院合作培养青年传承人；3. 开发水上实景演出体验项目。';
+        } else if (lower.includes('苗绣') || lower.includes('文创')) {
+            return '苗绣纹样极具特色，可将其数字化提取为矢量图案，应用于服装、包装、数字藏品等领域，同时需注重版权保护，与传承人共享收益。';
+        } else if (lower.includes('濒危')) {
+            const endangered = heritageData.filter(h => getEndangeredIndex(h) > 1.2);
+            if (endangered.length > 0) {
+                return `当前有 ${endangered.length} 项非遗处于濒危状态，其中最紧急的是 ${endangered[0].name}，建议立即启动抢救性记录。`;
+            } else {
+                return '目前暂无濒危非遗，但需持续关注传承人年龄结构和活动频次。';
+            }
+        } else {
+            return '感谢提问！关于非遗保护，建议采用数字化建档、价值评估、传播预测等大数据手段，结合AI辅助决策，实现科学化保护与活化传承。';
+        }
+    }
 }
 
 // ==================== 雷达图相关 ====================
@@ -345,16 +420,13 @@ function refreshRealTimeData() {
     document.getElementById('avgScore').innerText = currentAvgScore;
     document.getElementById('totalHeat').innerText = currentHeat.toFixed(1) + '亿+';
     document.getElementById('partnerCount').innerText = currentPartner;
-    // 更新热度趋势数据（模拟）
     const newValue = trendData[trendData.length-1] + (Math.random() - 0.5) * 10;
     trendData.push(Math.max(50, Math.min(200, Math.round(newValue))));
     trendData.shift();
     drawForecast();
-    // 更新濒危计数和AI建议
     updateStatsCards();
     renderWarningCards();
     updateAISuggestions();
-    // 随机更新当前选中非遗的评分
     const select = document.getElementById('evalSelect');
     if (heritageData.length > 0 && select.value !== '暂无数据') {
         const heritage = heritageData.find(h => h.name === select.value);
@@ -382,25 +454,15 @@ function escapeHtml(str) {
 
 // ==================== 页面初始化 ====================
 document.addEventListener('DOMContentLoaded', async function() {
-    // 初始化图表容器
     initRadarChart();
     drawForecast();
-
-    // 加载数据
     await fetchHeritages();
 
-    // 绑定筛选器
     document.getElementById('provinceFilter').addEventListener('change', () => renderHeritageCards());
-
-    // 绑定下拉选择变化
     document.getElementById('evalSelect').addEventListener('change', function() {
         if (this.value && this.value !== '暂无数据') updateRadarAndScore(this.value);
     });
-
-    // 刷新按钮
     document.getElementById('refreshDataBtn').addEventListener('click', () => refreshRealTimeData());
-
-    // 生成报告按钮
     document.getElementById('genReportBtn').addEventListener('click', () => {
         const select = document.getElementById('evalSelect');
         if (select.value && select.value !== '暂无数据') {
@@ -409,7 +471,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         } else alert('请先选择非遗项目');
     });
 
-    // 模态框关闭逻辑
+    // 模态框关闭
     const modal = document.getElementById('modal');
     document.getElementById('closeModal').addEventListener('click', () => {
         modal.classList.add('hidden');
@@ -417,7 +479,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
 
-    // 管理非遗功能（仅管理员）
+    // 管理非遗（仅管理员）
     const manageBtn = document.getElementById('manageBtn');
     if (isAdmin()) {
         manageBtn.classList.remove('hidden');
@@ -460,6 +522,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // 定时刷新（每15秒）
+    // AI 文创和传承按钮
+    document.getElementById('creativeBtn').addEventListener('click', generateCreative);
+    document.getElementById('pathBtn').addEventListener('click', generatePath);
+
+    // 初始化聊天
+    initChat();
+
+    // 定时刷新
     setInterval(() => refreshRealTimeData(), 15000);
 });

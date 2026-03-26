@@ -3,21 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>西部陆海非遗大数据管理系统 | 数字赋能·非遗活化</title>
+    <title>西部陆海非遗大数据管理系统 | AI 赋能·数字活化</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 自定义额外样式 */
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .chat-message {
+            border-radius: 1rem;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            max-width: 85%;
+        }
+        .chat-user {
+            background-color: #e2e8f0;
+            align-self: flex-end;
+        }
+        .chat-ai {
+            background-color: #3b82f6;
+            color: white;
+            align-self: flex-start;
+        }
+        .endangered-card {
+            transition: transform 0.2s;
+        }
+        .endangered-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <nav class="bg-white shadow sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="text-2xl font-bold text-blue-800">西部陆海<span class="text-orange-600">非遗大数据</span></div>
+            <div class="text-2xl font-bold text-blue-800">西部陆海<span class="text-orange-600">非遗大数据</span><span class="text-sm ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full">AI 2.0</span></div>
             <div class="space-x-6 flex items-center">
                 <a href="#dashboard" class="hover:text-blue-600">数据看板</a>
                 <a href="#archive" class="hover:text-blue-600">建档模块</a>
                 <a href="#evaluate" class="hover:text-blue-600">价值评估</a>
                 <a href="#predict" class="hover:text-blue-600">传播预测</a>
+                <a href="#ai-assistant" class="hover:text-blue-600">AI助手</a>
                 <button id="manageBtn" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 hidden">
                     <i class="fas fa-plus-circle"></i> 管理非遗
                 </button>
@@ -57,7 +85,7 @@
             </div>
         </div>
 
-        <!-- 1. 关键指标卡片 -->
+        <!-- 关键指标卡片（新增濒危数量） -->
         <section id="dashboard" class="mb-16">
             <h2 class="text-3xl font-bold mb-6">非遗数据总览</h2>
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
@@ -69,19 +97,19 @@
             </div>
         </section>
 
-        <!-- 2. 省级非遗分布柱状图 -->
+        <!-- 省级非遗分布柱状图 -->
         <section class="mb-16">
             <h2 class="text-3xl font-bold mb-6">各省非遗项目数量分布</h2>
             <div id="provinceChart" style="height: 400px;" class="bg-white rounded shadow p-2"></div>
         </section>
 
-        <!-- 3. 建档模块（卡片列表） -->
+        <!-- 建档模块（卡片列表） -->
         <section id="archive" class="mb-16">
             <h2 class="text-3xl font-bold mb-6">数字化建档 · 非遗基因库</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="heritageList"></div>
         </section>
 
-        <!-- 4. 价值评估模块（雷达图） -->
+        <!-- 价值评估模块（雷达图） -->
         <section id="evaluate" class="mb-16">
             <h2 class="text-3xl font-bold mb-6">非遗价值评估体系</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -99,37 +127,68 @@
             </div>
         </section>
 
-        <!-- 5. 传承活力预警 -->
+        <!-- 传承活力预警（美化版） -->
         <section class="mb-16">
             <h2 class="text-3xl font-bold mb-6">传承活力预警 · 濒危非遗监测</h2>
-            <div id="warningCards" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            <div id="warningCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
-        <!-- 6. 非遗关联图谱 -->
+        <!-- 非遗关联图谱 -->
         <section class="mb-16">
             <h2 class="text-3xl font-bold mb-6">非遗文化关联图谱</h2>
             <div id="graphChart" style="height: 500px;" class="bg-white rounded shadow p-2"></div>
         </section>
 
-        <!-- 7. 传播热度预测（含历史+预测） -->
+        <!-- 传播热度趋势+AI预测 -->
         <section id="predict" class="mb-16">
             <h2 class="text-3xl font-bold mb-6">传播热度趋势与AI预测</h2>
             <div id="forecastChart" style="height: 400px;" class="bg-white rounded shadow p-2"></div>
         </section>
 
-        <!-- 8. AI保护建议 -->
-        <section class="mb-16">
-            <h2 class="text-3xl font-bold mb-6">AI 保护建议 · 大数据决策支持</h2>
-            <div id="aiSuggestions" class="bg-white rounded shadow p-6">
-                <ul class="list-disc list-inside space-y-2 text-gray-700">
-                    <li>基于实时数据分析，系统将动态生成保护建议...</li>
-                </ul>
+        <!-- AI 多模块区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
+            <!-- AI 保护建议（原有增强） -->
+            <div class="bg-white rounded shadow p-6">
+                <h3 class="text-xl font-bold mb-4"><i class="fas fa-robot text-blue-600 mr-2"></i> AI 保护建议</h3>
+                <div id="aiSuggestions" class="space-y-2">
+                    <ul class="list-disc list-inside text-gray-700"></ul>
+                </div>
+            </div>
+            <!-- AI 文创灵感 -->
+            <div class="bg-white rounded shadow p-6">
+                <h3 class="text-xl font-bold mb-4"><i class="fas fa-palette text-purple-600 mr-2"></i> AI 文创灵感</h3>
+                <div id="aiCreative" class="text-gray-700 space-y-2">
+                    <p>点击下方按钮，为选中的非遗生成文创设计灵感</p>
+                    <button id="creativeBtn" class="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 mt-2">生成灵感</button>
+                    <div id="creativeResult" class="mt-2 p-2 bg-gray-100 rounded text-sm"></div>
+                </div>
+            </div>
+            <!-- AI 传承路径规划 -->
+            <div class="bg-white rounded shadow p-6">
+                <h3 class="text-xl font-bold mb-4"><i class="fas fa-chalkboard-user text-green-600 mr-2"></i> AI 传承路径规划</h3>
+                <div id="aiPath" class="text-gray-700 space-y-2">
+                    <p>为选中的非遗规划传承人培养路径</p>
+                    <button id="pathBtn" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 mt-2">生成规划</button>
+                    <div id="pathResult" class="mt-2 p-2 bg-gray-100 rounded text-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 对话助手 -->
+        <section id="ai-assistant" class="mb-16 bg-white rounded shadow p-6">
+            <h2 class="text-2xl font-bold mb-4"><i class="fas fa-comment-dots text-blue-600 mr-2"></i> AI 非遗助手（对话式）</h2>
+            <div class="flex flex-col h-80 overflow-y-auto border rounded p-3 bg-gray-50 mb-3" id="chatBox">
+                <div class="chat-message chat-ai">你好！我是非遗保护AI助手。你可以问我关于非遗保护、传承、传播等问题，我会尽力为你解答。</div>
+            </div>
+            <div class="flex">
+                <input type="text" id="chatInput" class="flex-1 border rounded-l p-2" placeholder="输入你的问题，例如：如何保护川江号子？">
+                <button id="sendChatBtn" class="bg-blue-600 text-white px-4 py-2 rounded-r hover:bg-blue-700">发送</button>
             </div>
         </section>
     </main>
 
     <footer class="bg-gray-800 text-white text-center py-4 mt-8">
-        <p>西部陆海新通道非遗大数据管理系统 | 数字赋能·活化传承 | 大数据模型辅助非遗保护</p>
+        <p>西部陆海新通道非遗大数据管理系统 | AI 赋能·数字活化 | 大数据模型辅助非遗保护</p>
     </footer>
 
     <!-- 模态框：数字档案详情 -->
@@ -143,7 +202,7 @@
         </div>
     </div>
 
-    <!-- 管理非遗模态框（仅管理员可见） -->
+    <!-- 管理非遗模态框（仅管理员） -->
     <div id="manageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
         <div class="bg-white rounded-lg w-11/12 max-w-md p-6">
             <div class="flex justify-between items-center border-b pb-2 mb-4">

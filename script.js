@@ -1,7 +1,7 @@
-const API_URL = 'https://69c496238a5b6e2dec2ae93e.mockapi.io/heritage';  // 替换为你的 mockapi.io 地址
+const API_URL = 'https://你的项目ID.mockapi.io/heritages';  // 请替换为你的 mockapi.io 地址
 let heritageData = [];
-let radarChart, trendChart, mapChart;
-let trendData = [65, 72, 88, 95, 102, 118];
+let radarChart, mapChart, provinceChart, graphChart, forecastChart;
+let trendData = [65, 72, 88, 95, 102, 118];  // 历史热度数据
 let currentHeat = 1.2;
 let currentAvgScore = 83.5;
 let currentPartner = 32;
@@ -9,8 +9,7 @@ let currentPartner = 32;
 // ==================== 管理员权限判断 ====================
 function isAdmin() {
     const urlParams = new URLSearchParams(window.location.search);
-    // 修改这里的密码（例如 '2024'）为你想设置的密码
-    return urlParams.get('admin') === '2024';
+    return urlParams.get('admin') === '2024';   // 修改密码
 }
 
 // ==================== API 函数 ====================
@@ -22,15 +21,15 @@ async function fetchHeritages() {
         renderHeritageCards();
         updateEvalSelect();
         updateStatsCards();
-
+        drawProvinceChart();
+        renderWarningCards();
+        drawGraph();
+        updateAISuggestions();
+        // 更新雷达图（使用第一个非遗）
         if (heritageData.length > 0) {
             const first = heritageData[0];
-            const select = document.getElementById('evalSelect');
-            select.value = first.name;
-            updateRadarChart(first.name);
+            document.getElementById('evalSelect').value = first.name;
             updateRadarAndScore(first.name);
-        } else {
-            document.getElementById('radarChart').innerHTML = '<div class="text-center text-gray-500">暂无数据</div>';
         }
     } catch (error) {
         console.error('加载非遗数据失败:', error);
@@ -39,7 +38,6 @@ async function fetchHeritages() {
 }
 
 async function addHeritage(newHeritage) {
-    // 权限检查：非管理员不能添加
     if (!isAdmin()) {
         alert('无权限操作');
         return;
@@ -62,25 +60,25 @@ async function addHeritage(newHeritage) {
 // ==================== 页面渲染函数 ====================
 function renderHeritageCards() {
     const container = document.getElementById('heritageList');
-    if (!container) return;
+    const provinceFilter = document.getElementById('provinceFilter').value;
     container.innerHTML = '';
-    if (heritageData.length === 0) {
+    let filtered = heritageData;
+    if (provinceFilter !== 'all') {
+        filtered = heritageData.filter(h => h.province === provinceFilter);
+    }
+    if (filtered.length === 0) {
         container.innerHTML = '<div class="col-span-full text-center text-gray-500">暂无非遗数据，请点击“管理非遗”添加。</div>';
         return;
     }
-    heritageData.forEach(item => {
+    filtered.forEach(item => {
         const card = document.createElement('div');
         card.className = 'bg-white rounded shadow p-4 card-hover';
         card.innerHTML = `
-            <div class="h-40 bg-gray-200 rounded mb-3 flex items-center justify-center text-gray-400">
-                <i class="fas fa-image fa-3x"></i>
-            </div>
+            <div class="h-40 bg-gray-200 rounded mb-3 flex items-center justify-center text-gray-400"><i class="fas fa-image fa-3x"></i></div>
             <h3 class="font-bold text-xl">${escapeHtml(item.name)}</h3>
-            <p class="text-gray-500 text-sm">${escapeHtml(item.category)}</p>
+            <p class="text-gray-500 text-sm">${escapeHtml(item.category)} | ${escapeHtml(item.province)}</p>
             <p class="mt-2 text-gray-600">${escapeHtml(item.desc)}</p>
-            <button class="view-detail mt-3 text-blue-600 text-sm border border-blue-600 px-3 py-1 rounded hover:bg-blue-600 hover:text-white transition" data-id="${item.id}">
-                查看数字档案
-            </button>
+            <button class="view-detail mt-3 text-blue-600 text-sm border border-blue-600 px-3 py-1 rounded hover:bg-blue-600 hover:text-white transition" data-id="${item.id}">查看数字档案</button>
         `;
         container.appendChild(card);
     });
@@ -95,7 +93,6 @@ function renderHeritageCards() {
 
 function updateEvalSelect() {
     const select = document.getElementById('evalSelect');
-    if (!select) return;
     select.innerHTML = '';
     if (heritageData.length === 0) {
         select.innerHTML = '<option>暂无数据</option>';
@@ -104,7 +101,7 @@ function updateEvalSelect() {
     heritageData.forEach(h => {
         const option = document.createElement('option');
         option.value = h.name;
-        option.textContent = h.name;
+        option.textContent = `${h.name} (${h.province})`;
         select.appendChild(option);
     });
 }
@@ -112,22 +109,26 @@ function updateEvalSelect() {
 function updateStatsCards() {
     const total = heritageData.length;
     document.getElementById('totalHeritageCount').innerText = total;
-    if (total === 0) {
-        document.getElementById('avgScore').innerText = '0';
-        return;
-    }
+    if (total === 0) return;
     const avg = heritageData.reduce((sum, h) => sum + (h.totalScore || 0), 0) / total;
     document.getElementById('avgScore').innerText = avg.toFixed(1);
     document.getElementById('totalHeat').innerText = currentHeat.toFixed(1) + '亿+';
     document.getElementById('partnerCount').innerText = currentPartner;
+    // 濒危数量
+    const endangered = heritageData.filter(h => {
+        const age = h.details?.age || 60;
+        const apps = h.details?.apprentices || 0;
+        const acts = h.details?.activitiesPerYear || 10;
+        const index = (age/100) + (5-Math.min(apps,5))/5 + (20-Math.min(acts,20))/20;
+        return index > 1.2;
+    });
+    document.getElementById('endangeredCount').innerText = endangered.length;
 }
 
 function showModal(heritage) {
     const modal = document.getElementById('modal');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalContent = document.getElementById('modalContent');
-    modalTitle.innerText = `${heritage.name} 数字档案`;
-    modalContent.innerHTML = `
+    document.getElementById('modalTitle').innerText = `${heritage.name} 数字档案`;
+    document.getElementById('modalContent').innerHTML = `
         <div class="space-y-4">
             <div><strong>传承人：</strong> ${escapeHtml(heritage.details.inheritor)}</div>
             <div><strong>技艺流程：</strong> ${escapeHtml(heritage.details.techProcess)}</div>
@@ -142,37 +143,166 @@ function showModal(heritage) {
     modal.classList.add('flex');
 }
 
-// ==================== 图表初始化与更新 ====================
-function initMapChart() {
-    const chartDom = document.getElementById('mapChart');
+// ==================== 图表绘制 ====================
+function drawProvinceChart() {
+    const provinceCount = {};
+    heritageData.forEach(h => {
+        provinceCount[h.province] = (provinceCount[h.province] || 0) + 1;
+    });
+    const provinces = Object.keys(provinceCount);
+    const counts = Object.values(provinceCount);
+    const chartDom = document.getElementById('provinceChart');
     if (!chartDom) return;
-    mapChart = echarts.init(chartDom);
-    const option = {
-        title: { text: '沿线省份非遗分布热度', left: 'center' },
-        tooltip: { trigger: 'item' },
-        xAxis: { type: 'category', data: ['重庆', '四川', '贵州', '云南', '广西', '甘肃', '青海', '新疆'] },
-        yAxis: { type: 'value', name: '非遗项目数量（项）' },
-        series: [{
-            data: [342, 521, 428, 356, 487, 213, 176, 142],
-            type: 'bar',
-            itemStyle: { color: '#3b82f6', borderRadius: [5,5,0,0] }
-        }]
-    };
-    mapChart.setOption(option);
+    if (provinceChart) provinceChart.dispose();
+    provinceChart = echarts.init(chartDom);
+    provinceChart.setOption({
+        title: { text: '各省非遗项目数量', left: 'center' },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: provinces, axisLabel: { rotate: 45 } },
+        yAxis: { type: 'value' },
+        series: [{ type: 'bar', data: counts, itemStyle: { color: '#3b82f6', borderRadius: [5,5,0,0] } }]
+    });
 }
 
+function renderWarningCards() {
+    const container = document.getElementById('warningCards');
+    container.innerHTML = '';
+    const endangered = heritageData.filter(h => {
+        const age = h.details?.age || 60;
+        const apps = h.details?.apprentices || 0;
+        const acts = h.details?.activitiesPerYear || 10;
+        const index = (age/100) + (5-Math.min(apps,5))/5 + (20-Math.min(acts,20))/20;
+        return index > 1.2;
+    });
+    if (endangered.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center text-green-600">✅ 暂无濒危非遗，保护状况良好！</div>';
+        return;
+    }
+    endangered.forEach(h => {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded shadow p-4 border-l-4 border-red-500';
+        card.innerHTML = `
+            <h3 class="font-bold text-xl">${h.name}</h3>
+            <p class="text-gray-600">传承人年龄：${h.details?.age || '?'}岁</p>
+            <p class="text-gray-600">徒弟数量：${h.details?.apprentices || 0}人</p>
+            <p class="text-gray-600">年均活动：${h.details?.activitiesPerYear || 0}次</p>
+            <p class="text-red-600 font-bold mt-2">⚠️ 濒危等级：高</p>
+            <button class="mt-2 text-sm text-blue-600" onclick="alert('建议立即启动数字化抢救记录，并增加传承人培养投入。')">查看保护建议</button>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function drawGraph() {
+    const nodes = heritageData.map(h => ({ name: h.name, category: h.category, value: h.totalScore }));
+    const links = [];
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i+1; j < nodes.length; j++) {
+            if (nodes[i].category === nodes[j].category) {
+                links.push({ source: nodes[i].name, target: nodes[j].name });
+            }
+        }
+    }
+    const chartDom = document.getElementById('graphChart');
+    if (!chartDom) return;
+    if (graphChart) graphChart.dispose();
+    graphChart = echarts.init(chartDom);
+    graphChart.setOption({
+        title: { text: '非遗文化关联图谱（同类别关联）' },
+        series: [{
+            type: 'graph',
+            layout: 'force',
+            data: nodes,
+            links: links,
+            roam: true,
+            label: { show: true, position: 'right', fontSize: 12 },
+            force: { repulsion: 300, edgeLength: 100 },
+            lineStyle: { color: '#aaa', curveness: 0.3 },
+            emphasis: { focus: 'adjacency' }
+        }]
+    });
+}
+
+function drawForecast() {
+    const historyMonths = ['10月', '11月', '12月', '1月', '2月', '3月'];
+    const historyData = trendData;
+    // 简单预测：使用最后3个月的平均值作为下月预测，并向下延伸两个月
+    const lastThree = historyData.slice(-3);
+    const avg = lastThree.reduce((a,b)=>a+b,0)/3;
+    const forecastMonths = ['4月', '5月', '6月'];
+    const forecastData = [avg, avg*1.05, avg*1.08];  // 模拟小幅增长
+    const allMonths = [...historyMonths, ...forecastMonths];
+    const allData = [...historyData, ...forecastData];
+    const chartDom = document.getElementById('forecastChart');
+    if (!chartDom) return;
+    if (forecastChart) forecastChart.dispose();
+    forecastChart = echarts.init(chartDom);
+    forecastChart.setOption({
+        title: { text: '传播热度趋势与AI预测' },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: allMonths },
+        yAxis: { type: 'value', name: '热度指数' },
+        series: [
+            { name: '历史热度', type: 'line', data: historyData, lineStyle: { color: '#3b82f6', width: 2 }, smooth: true },
+            { name: 'AI预测', type: 'line', data: [...Array(historyData.length).fill(null), ...forecastData], lineStyle: { color: '#f97316', width: 2, type: 'dashed' }, symbol: 'diamond' }
+        ]
+    });
+}
+
+function updateAISuggestions() {
+    const container = document.getElementById('aiSuggestions');
+    const ul = container.querySelector('ul');
+    if (!ul) return;
+    ul.innerHTML = '';
+    // 基于实时数据生成动态建议
+    const suggestions = [];
+    // 1. 检测濒危项目
+    const endangered = heritageData.filter(h => {
+        const age = h.details?.age || 60;
+        const apps = h.details?.apprentices || 0;
+        const acts = h.details?.activitiesPerYear || 10;
+        return (age/100) + (5-Math.min(apps,5))/5 + (20-Math.min(acts,20))/20 > 1.2;
+    });
+    if (endangered.length > 0) {
+        suggestions.push(`⚠️ 检测到 ${endangered.length} 项濒危非遗（如 ${endangered[0].name}），建议立即启动数字化抢救记录，增加传承人培养投入。`);
+    }
+    // 2. 热度下降预警
+    if (trendData[trendData.length-1] < trendData[0]) {
+        suggestions.push('📉 近半年整体传播热度呈下降趋势，建议加强新媒体宣传，制作短视频内容。');
+    } else {
+        suggestions.push('📈 近期传播热度稳步上升，可趁势推出数字藏品或文创产品，扩大影响力。');
+    }
+    // 3. 价值评分分布建议
+    const lowScore = heritageData.filter(h => h.totalScore < 70);
+    if (lowScore.length > 0) {
+        suggestions.push(`💡 ${lowScore.length} 项非遗综合价值评分偏低，建议深入挖掘文化内涵，优化传承与传播方式。`);
+    }
+    // 4. 省份分布提示
+    const provinceCount = {};
+    heritageData.forEach(h => { provinceCount[h.province] = (provinceCount[h.province] || 0) + 1; });
+    const maxProvince = Object.keys(provinceCount).reduce((a,b) => provinceCount[a] > provinceCount[b] ? a : b);
+    suggestions.push(`📍 ${maxProvince} 省非遗资源最丰富，可重点打造“数字非遗+文旅”示范项目。`);
+
+    suggestions.forEach(s => {
+        const li = document.createElement('li');
+        li.className = 'list-disc list-inside text-gray-700';
+        li.innerText = s;
+        ul.appendChild(li);
+    });
+}
+
+// ==================== 雷达图相关 ====================
 function initRadarChart() {
     const chartDom = document.getElementById('radarChart');
     if (!chartDom) return;
     radarChart = echarts.init(chartDom);
 }
-
 function updateRadarChart(heritageName) {
     if (!radarChart) return;
     const heritage = heritageData.find(h => h.name === heritageName);
     if (!heritage) return;
-    const values = heritage.value;
-    const option = {
+    const v = heritage.value;
+    radarChart.setOption({
         radar: {
             indicator: [
                 { name: '文化稀缺性', max: 10 },
@@ -185,54 +315,26 @@ function updateRadarChart(heritageName) {
         },
         series: [{
             type: 'radar',
-            data: [{ value: [values.culture, values.vitality, values.economy, values.spread, values.policy], name: heritageName }],
+            data: [{ value: [v.culture, v.vitality, v.economy, v.spread, v.policy], name: heritageName }],
             areaStyle: { color: 'rgba(59,130,246,0.2)' },
             lineStyle: { color: '#3b82f6', width: 2 }
         }]
-    };
-    radarChart.setOption(option, true);
+    });
 }
-
 function updateRadarAndScore(heritageName) {
     const heritage = heritageData.find(h => h.name === heritageName);
-    if (heritage) {
-        updateRadarChart(heritageName);
-        document.getElementById('evalName').innerText = heritageName;
-        document.getElementById('evalScore').innerText = heritage.totalScore;
-        const cultureStars = '★'.repeat(Math.floor(heritage.value.culture / 2)) + '☆'.repeat(5 - Math.floor(heritage.value.culture / 2));
-        const vitalityStars = '★'.repeat(Math.floor(heritage.value.vitality / 2)) + '☆'.repeat(5 - Math.floor(heritage.value.vitality / 2));
-        const economyStars = '★'.repeat(Math.floor(heritage.value.economy / 2)) + '☆'.repeat(5 - Math.floor(heritage.value.economy / 2));
-        document.getElementById('evalDetails').innerHTML = `
-            <p>文化稀缺性：${cultureStars}</p>
-            <p>传承活力：${vitalityStars}</p>
-            <p>经济潜力：${economyStars}</p>
-        `;
-    }
-}
-
-function initTrendChart() {
-    const chartDom = document.getElementById('trendChart');
-    if (!chartDom) return;
-    trendChart = echarts.init(chartDom);
-    updateTrendChart();
-}
-
-function updateTrendChart() {
-    if (!trendChart) return;
-    const option = {
-        title: { text: '近6个月传播热度指数' },
-        tooltip: { trigger: 'axis' },
-        xAxis: { type: 'category', data: ['10月', '11月', '12月', '1月', '2月', '3月'] },
-        yAxis: { type: 'value' },
-        series: [{
-            data: trendData,
-            type: 'line',
-            smooth: true,
-            lineStyle: { color: '#f97316', width: 3 },
-            areaStyle: { opacity: 0.1 }
-        }]
-    };
-    trendChart.setOption(option, true);
+    if (!heritage) return;
+    updateRadarChart(heritageName);
+    document.getElementById('evalName').innerText = heritageName;
+    document.getElementById('evalScore').innerText = heritage.totalScore;
+    const cultureStars = '★'.repeat(Math.floor(heritage.value.culture / 2)) + '☆'.repeat(5 - Math.floor(heritage.value.culture / 2));
+    const vitalityStars = '★'.repeat(Math.floor(heritage.value.vitality / 2)) + '☆'.repeat(5 - Math.floor(heritage.value.vitality / 2));
+    const economyStars = '★'.repeat(Math.floor(heritage.value.economy / 2)) + '☆'.repeat(5 - Math.floor(heritage.value.economy / 2));
+    document.getElementById('evalDetails').innerHTML = `
+        <p>文化稀缺性：${cultureStars}</p>
+        <p>传承活力：${vitalityStars}</p>
+        <p>经济潜力：${economyStars}</p>
+    `;
 }
 
 // ==================== 实时数据模拟刷新 ====================
@@ -243,11 +345,16 @@ function refreshRealTimeData() {
     document.getElementById('avgScore').innerText = currentAvgScore;
     document.getElementById('totalHeat').innerText = currentHeat.toFixed(1) + '亿+';
     document.getElementById('partnerCount').innerText = currentPartner;
-
-    const newValue = trendData[5] + (Math.random() - 0.5) * 10;
-    trendData[5] = Math.max(50, Math.min(200, Math.round(newValue)));
-    updateTrendChart();
-
+    // 更新热度趋势数据（模拟）
+    const newValue = trendData[trendData.length-1] + (Math.random() - 0.5) * 10;
+    trendData.push(Math.max(50, Math.min(200, Math.round(newValue))));
+    trendData.shift();
+    drawForecast();
+    // 更新濒危计数和AI建议
+    updateStatsCards();
+    renderWarningCards();
+    updateAISuggestions();
+    // 随机更新当前选中非遗的评分
     const select = document.getElementById('evalSelect');
     if (heritageData.length > 0 && select.value !== '暂无数据') {
         const heritage = heritageData.find(h => h.name === select.value);
@@ -260,24 +367,6 @@ function refreshRealTimeData() {
             updateRadarAndScore(select.value);
         }
     }
-
-    const suggestions = [
-        '📹 建议为“川江号子”补充短视频素材，提升传播热度',
-        '📊 荣昌夏布搜索量上升32%，可加大文创开发力度',
-        '🌍 铜梁龙舞在海外平台热度高，建议制作多语言版本',
-        '🔥 川江号子本月热度上升20%，可申请文化传播专项',
-        '💡 建议为铜梁龙舞开发数字藏品，已有多家平台接洽',
-        '🎨 苗绣纹样数字化可助力设计新文创，提升附加值'
-    ];
-    const shuffled = suggestions.sort(() => 0.5 - Math.random());
-    const ul = document.getElementById('suggestionsList');
-    ul.innerHTML = '';
-    shuffled.slice(0, 3).forEach(s => {
-        const li = document.createElement('li');
-        li.className = 'list-disc list-inside';
-        li.innerText = s;
-        ul.appendChild(li);
-    });
 }
 
 // ==================== 辅助函数 ====================
@@ -293,65 +382,49 @@ function escapeHtml(str) {
 
 // ==================== 页面初始化 ====================
 document.addEventListener('DOMContentLoaded', async function() {
-    // 1. 初始化图表
-    initMapChart();
+    // 初始化图表容器
     initRadarChart();
-    initTrendChart();
+    drawForecast();
 
-    // 2. 加载数据
+    // 加载数据
     await fetchHeritages();
 
-    // 3. 绑定下拉选择变化
-    const evalSelect = document.getElementById('evalSelect');
-    evalSelect.addEventListener('change', function() {
-        if (this.value && this.value !== '暂无数据') {
-            updateRadarAndScore(this.value);
-        }
+    // 绑定筛选器
+    document.getElementById('provinceFilter').addEventListener('change', () => renderHeritageCards());
+
+    // 绑定下拉选择变化
+    document.getElementById('evalSelect').addEventListener('change', function() {
+        if (this.value && this.value !== '暂无数据') updateRadarAndScore(this.value);
     });
 
-    // 4. 绑定刷新按钮
-    const refreshBtn = document.getElementById('refreshDataBtn');
-    refreshBtn.addEventListener('click', function() {
-        refreshRealTimeData();
-    });
+    // 刷新按钮
+    document.getElementById('refreshDataBtn').addEventListener('click', () => refreshRealTimeData());
 
-    // 5. 绑定生成报告按钮
-    const reportBtn = document.getElementById('genReportBtn');
-    reportBtn.addEventListener('click', function() {
+    // 生成报告按钮
+    document.getElementById('genReportBtn').addEventListener('click', () => {
         const select = document.getElementById('evalSelect');
         if (select.value && select.value !== '暂无数据') {
             const heritage = heritageData.find(h => h.name === select.value);
             alert(`评估报告已生成：${select.value} 综合价值${heritage ? heritage.totalScore : '?'}分。详细报告将在邮箱发送。`);
-        } else {
-            alert('请先选择非遗项目');
-        }
+        } else alert('请先选择非遗项目');
     });
 
-    // 6. 模态框关闭逻辑
+    // 模态框关闭逻辑
     const modal = document.getElementById('modal');
-    const closeModal = document.getElementById('closeModal');
-    closeModal.addEventListener('click', () => {
+    document.getElementById('closeModal').addEventListener('click', () => {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
     });
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-    });
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
 
-    // ========== 管理非遗功能（仅管理员可见） ==========
+    // 管理非遗功能（仅管理员）
     const manageBtn = document.getElementById('manageBtn');
     if (isAdmin()) {
-        // 显示管理按钮
-        manageBtn.style.display = 'inline-block';
-        // 绑定管理模态框相关逻辑
+        manageBtn.classList.remove('hidden');
         const manageModal = document.getElementById('manageModal');
         const closeManageModal = document.getElementById('closeManageModal');
         const cancelManage = document.getElementById('cancelManage');
         const addForm = document.getElementById('addHeritageForm');
-
         manageBtn.addEventListener('click', () => {
             manageModal.classList.remove('hidden');
             manageModal.classList.add('flex');
@@ -363,43 +436,30 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         closeManageModal.addEventListener('click', closeManage);
         cancelManage.addEventListener('click', closeManage);
-        manageModal.addEventListener('click', (e) => {
-            if (e.target === manageModal) closeManage();
-        });
-
+        manageModal.addEventListener('click', (e) => { if (e.target === manageModal) closeManage(); });
         addForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const newHeritage = {
                 name: document.getElementById('name').value,
                 category: document.getElementById('category').value,
+                province: document.getElementById('province').value,
                 desc: document.getElementById('desc').value,
-                value: {
-                    culture: 8.0,
-                    vitality: 8.0,
-                    economy: 8.0,
-                    spread: 8.0,
-                    policy: 8.0
-                },
+                value: { culture: 8.0, vitality: 8.0, economy: 8.0, spread: 8.0, policy: 8.0 },
                 totalScore: 80.0,
                 details: {
                     inheritor: document.getElementById('inheritor').value,
                     techProcess: document.getElementById('techProcess').value,
                     blockchainId: '0x' + Math.random().toString(16).substr(2, 10),
                     collectDate: new Date().toISOString().slice(0,10),
-                    status: document.getElementById('status').value
+                    status: document.getElementById('status').value,
+                    age: 50, apprentices: 3, activitiesPerYear: 15
                 }
             };
             await addHeritage(newHeritage);
             closeManage();
         });
-    } else {
-        // 非管理员，隐藏管理按钮
-        manageBtn.style.display = 'none';
     }
 
-    // 自动实时刷新（每10秒）
-    setInterval(() => {
-        refreshRealTimeData();
-    }, 10000);
+    // 定时刷新（每15秒）
+    setInterval(() => refreshRealTimeData(), 15000);
 });
-

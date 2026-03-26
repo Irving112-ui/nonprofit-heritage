@@ -18,7 +18,7 @@ exports.handler = async function(event, context) {
     }
 
     // 从环境变量读取密钥
-    const API_KEY = process.env.BAIDU_API_KEY;
+    const API_KEY = bce-v3/ALTAK-YjknxlaiHP10cdtx41kbY/78bbe7164c581bcd9ab5baebb25137a5ced93085;
     const SECRET_KEY = process.env.BAIDU_SECRET_KEY;
 
     // 1. 获取 access_token

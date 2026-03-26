@@ -1,11 +1,17 @@
-// ==================== 全局变量 ====================
-const API_URL = 'https://69c496238a5b6e2dec2ae93e.mockapi.io/heritage';
+const API_URL = 'https://69c496238a5b6e2dec2ae93e.mockapi.io/heritage';  // 替换为你的 mockapi.io 地址
 let heritageData = [];
 let radarChart, trendChart, mapChart;
 let trendData = [65, 72, 88, 95, 102, 118];
 let currentHeat = 1.2;
 let currentAvgScore = 83.5;
 let currentPartner = 32;
+
+// ==================== 管理员权限判断 ====================
+function isAdmin() {
+    const urlParams = new URLSearchParams(window.location.search);
+    // 修改这里的密码（例如 '2024'）为你想设置的密码
+    return urlParams.get('admin') === '2024';
+}
 
 // ==================== API 函数 ====================
 async function fetchHeritages() {
@@ -17,7 +23,6 @@ async function fetchHeritages() {
         updateEvalSelect();
         updateStatsCards();
 
-        // 如果有数据，更新雷达图（使用第一个非遗）
         if (heritageData.length > 0) {
             const first = heritageData[0];
             const select = document.getElementById('evalSelect');
@@ -25,16 +30,20 @@ async function fetchHeritages() {
             updateRadarChart(first.name);
             updateRadarAndScore(first.name);
         } else {
-            // 无数据时显示提示
             document.getElementById('radarChart').innerHTML = '<div class="text-center text-gray-500">暂无数据</div>';
         }
     } catch (error) {
         console.error('加载非遗数据失败:', error);
-        document.getElementById('heritageList').innerHTML = '<div class="col-span-full text-center text-red-500">无法连接后端，请确保 json-server 已启动 (http://localhost:3000)</div>';
+        document.getElementById('heritageList').innerHTML = '<div class="col-span-full text-center text-red-500">无法连接后端，请确保 mockapi.io 地址正确</div>';
     }
 }
 
 async function addHeritage(newHeritage) {
+    // 权限检查：非管理员不能添加
+    if (!isAdmin()) {
+        alert('无权限操作');
+        return;
+    }
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -42,7 +51,7 @@ async function addHeritage(newHeritage) {
             body: JSON.stringify(newHeritage)
         });
         if (!response.ok) throw new Error('添加失败');
-        await fetchHeritages();  // 重新加载列表
+        await fetchHeritages();
         alert('添加成功！');
     } catch (error) {
         console.error('添加非遗失败:', error);
@@ -156,14 +165,10 @@ function initRadarChart() {
     const chartDom = document.getElementById('radarChart');
     if (!chartDom) return;
     radarChart = echarts.init(chartDom);
-    // 初始为空，等待数据后再更新
 }
 
 function updateRadarChart(heritageName) {
-    if (!radarChart) {
-        console.warn('radarChart 未初始化');
-        return;
-    }
+    if (!radarChart) return;
     const heritage = heritageData.find(h => h.name === heritageName);
     if (!heritage) return;
     const values = heritage.value;
@@ -288,15 +293,15 @@ function escapeHtml(str) {
 
 // ==================== 页面初始化 ====================
 document.addEventListener('DOMContentLoaded', async function() {
-    // 1. 先初始化所有图表（容器已存在）
+    // 1. 初始化图表
     initMapChart();
-    initRadarChart();   // 创建空雷达图，稍后填充数据
+    initRadarChart();
     initTrendChart();
 
-    // 2. 加载数据（会触发渲染卡片、更新雷达图等）
+    // 2. 加载数据
     await fetchHeritages();
 
-    // 3. 绑定事件（下拉选择变化、按钮等）
+    // 3. 绑定下拉选择变化
     const evalSelect = document.getElementById('evalSelect');
     evalSelect.addEventListener('change', function() {
         if (this.value && this.value !== '暂无数据') {
@@ -304,11 +309,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    // 4. 绑定刷新按钮
     const refreshBtn = document.getElementById('refreshDataBtn');
     refreshBtn.addEventListener('click', function() {
         refreshRealTimeData();
     });
 
+    // 5. 绑定生成报告按钮
     const reportBtn = document.getElementById('genReportBtn');
     reportBtn.addEventListener('click', function() {
         const select = document.getElementById('evalSelect');
@@ -320,7 +327,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // 模态框关闭逻辑
+    // 6. 模态框关闭逻辑
     const modal = document.getElementById('modal');
     const closeModal = document.getElementById('closeModal');
     closeModal.addEventListener('click', () => {
@@ -334,56 +341,65 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // 管理非遗模态框逻辑
+    // ========== 管理非遗功能（仅管理员可见） ==========
     const manageBtn = document.getElementById('manageBtn');
-    const manageModal = document.getElementById('manageModal');
-    const closeManageModal = document.getElementById('closeManageModal');
-    const cancelManage = document.getElementById('cancelManage');
-    const addForm = document.getElementById('addHeritageForm');
+    if (isAdmin()) {
+        // 显示管理按钮
+        manageBtn.style.display = 'inline-block';
+        // 绑定管理模态框相关逻辑
+        const manageModal = document.getElementById('manageModal');
+        const closeManageModal = document.getElementById('closeManageModal');
+        const cancelManage = document.getElementById('cancelManage');
+        const addForm = document.getElementById('addHeritageForm');
 
-    manageBtn.addEventListener('click', () => {
-        manageModal.classList.remove('hidden');
-        manageModal.classList.add('flex');
-    });
-    function closeManage() {
-        manageModal.classList.add('hidden');
-        manageModal.classList.remove('flex');
-        addForm.reset();
+        manageBtn.addEventListener('click', () => {
+            manageModal.classList.remove('hidden');
+            manageModal.classList.add('flex');
+        });
+        function closeManage() {
+            manageModal.classList.add('hidden');
+            manageModal.classList.remove('flex');
+            addForm.reset();
+        }
+        closeManageModal.addEventListener('click', closeManage);
+        cancelManage.addEventListener('click', closeManage);
+        manageModal.addEventListener('click', (e) => {
+            if (e.target === manageModal) closeManage();
+        });
+
+        addForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newHeritage = {
+                name: document.getElementById('name').value,
+                category: document.getElementById('category').value,
+                desc: document.getElementById('desc').value,
+                value: {
+                    culture: 8.0,
+                    vitality: 8.0,
+                    economy: 8.0,
+                    spread: 8.0,
+                    policy: 8.0
+                },
+                totalScore: 80.0,
+                details: {
+                    inheritor: document.getElementById('inheritor').value,
+                    techProcess: document.getElementById('techProcess').value,
+                    blockchainId: '0x' + Math.random().toString(16).substr(2, 10),
+                    collectDate: new Date().toISOString().slice(0,10),
+                    status: document.getElementById('status').value
+                }
+            };
+            await addHeritage(newHeritage);
+            closeManage();
+        });
+    } else {
+        // 非管理员，隐藏管理按钮
+        manageBtn.style.display = 'none';
     }
-    closeManageModal.addEventListener('click', closeManage);
-    cancelManage.addEventListener('click', closeManage);
-    manageModal.addEventListener('click', (e) => {
-        if (e.target === manageModal) closeManage();
-    });
-
-    addForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newHeritage = {
-            name: document.getElementById('name').value,
-            category: document.getElementById('category').value,
-            desc: document.getElementById('desc').value,
-            value: {
-                culture: 8.0,
-                vitality: 8.0,
-                economy: 8.0,
-                spread: 8.0,
-                policy: 8.0
-            },
-            totalScore: 80.0,
-            details: {
-                inheritor: document.getElementById('inheritor').value,
-                techProcess: document.getElementById('techProcess').value,
-                blockchainId: '0x' + Math.random().toString(16).substr(2, 10),
-                collectDate: new Date().toISOString().slice(0,10),
-                status: document.getElementById('status').value
-            }
-        };
-        await addHeritage(newHeritage);
-        closeManage();
-    });
 
     // 自动实时刷新（每10秒）
     setInterval(() => {
         refreshRealTimeData();
     }, 10000);
 });
+

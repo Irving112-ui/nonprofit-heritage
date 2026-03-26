@@ -1,4 +1,3 @@
-// ==================== 全局变量 ====================
 const API_URL = 'https://69c496238a5b6e2dec2ae93e.mockapi.io/heritage';  // 请替换为你的 mockapi.io 地址
 let heritageData = [];
 let radarChart, mapChart, provinceChart, graphChart, forecastChart;
@@ -156,7 +155,7 @@ function renderWarningCards() {
     }
     endangered.forEach(h => {
         const index = getEndangeredIndex(h);
-        const percent = Math.min(100, Math.round(index * 80)); // 映射到0-100%
+        const percent = Math.min(100, Math.round(index * 80));
         let levelColor = 'bg-red-500';
         let levelText = '高危';
         if (index < 1.4) { levelColor = 'bg-orange-500'; levelText = '中危'; }
@@ -323,46 +322,71 @@ function generatePath() {
     document.getElementById('pathResult').innerHTML = `<div class="bg-green-50 p-2 rounded">🎓 ${path}</div>`;
 }
 
-// ==================== AI 对话助手 ====================
+// ==================== 真实 AI 聊天助手（调用 Netlify Functions）====================
+async function callAI(message) {
+    try {
+        const response = await fetch('/.netlify/functions/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '请求失败');
+        return data.reply;
+    } catch (error) {
+        console.error('AI 调用失败:', error);
+        // 降级到模拟回复
+        return fallbackAIResponse(message);
+    }
+}
+
+// 降级模拟回复（确保演示稳定）
+function fallbackAIResponse(question) {
+    const lower = question.toLowerCase();
+    if (lower.includes('川江号子') || lower.includes('保护')) {
+        return '川江号子作为长江流域重要非遗，目前面临传承人老龄化问题。建议：1. 数字化记录全部唱腔；2. 与音乐学院合作培养青年传承人；3. 开发水上实景演出体验项目。';
+    } else if (lower.includes('苗绣') || lower.includes('文创')) {
+        return '苗绣纹样极具特色，可将其数字化提取为矢量图案，应用于服装、包装、数字藏品等领域，同时需注重版权保护，与传承人共享收益。';
+    } else if (lower.includes('濒危')) {
+        const endangered = heritageData.filter(h => getEndangeredIndex(h) > 1.2);
+        if (endangered.length > 0) {
+            return `当前有 ${endangered.length} 项非遗处于濒危状态，其中最紧急的是 ${endangered[0].name}，建议立即启动抢救性记录。`;
+        } else {
+            return '目前暂无濒危非遗，但需持续关注传承人年龄结构和活动频次。';
+        }
+    } else {
+        return '感谢提问！关于非遗保护，建议采用数字化建档、价值评估、传播预测等大数据手段，结合AI辅助决策，实现科学化保护与活化传承。';
+    }
+}
+
+// 初始化聊天界面
 function initChat() {
     const input = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendChatBtn');
     const chatBox = document.getElementById('chatBox');
     sendBtn.addEventListener('click', () => sendMessage());
     input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
-    function sendMessage() {
+
+    async function sendMessage() {
         const msg = input.value.trim();
         if (!msg) return;
         appendMessage(msg, 'user');
         input.value = '';
-        setTimeout(() => {
-            const reply = generateAIResponse(msg);
-            appendMessage(reply, 'ai');
-        }, 500);
+        // 显示加载中
+        const loadingDiv = appendMessage('🤖 AI 正在思考...', 'ai', true);
+        const reply = await callAI(msg);
+        // 移除加载中消息
+        if (loadingDiv) loadingDiv.remove();
+        appendMessage(reply, 'ai');
     }
-    function appendMessage(text, type) {
+
+    function appendMessage(text, type, isLoading = false) {
         const div = document.createElement('div');
         div.className = `chat-message ${type === 'user' ? 'chat-user' : 'chat-ai'} self-${type === 'user' ? 'end' : 'start'}`;
         div.innerText = text;
         chatBox.appendChild(div);
         chatBox.scrollTop = chatBox.scrollHeight;
-    }
-    function generateAIResponse(question) {
-        const lower = question.toLowerCase();
-        if (lower.includes('川江号子') || lower.includes('保护')) {
-            return '川江号子作为长江流域重要非遗，目前面临传承人老龄化问题。建议：1. 数字化记录全部唱腔；2. 与音乐学院合作培养青年传承人；3. 开发水上实景演出体验项目。';
-        } else if (lower.includes('苗绣') || lower.includes('文创')) {
-            return '苗绣纹样极具特色，可将其数字化提取为矢量图案，应用于服装、包装、数字藏品等领域，同时需注重版权保护，与传承人共享收益。';
-        } else if (lower.includes('濒危')) {
-            const endangered = heritageData.filter(h => getEndangeredIndex(h) > 1.2);
-            if (endangered.length > 0) {
-                return `当前有 ${endangered.length} 项非遗处于濒危状态，其中最紧急的是 ${endangered[0].name}，建议立即启动抢救性记录。`;
-            } else {
-                return '目前暂无濒危非遗，但需持续关注传承人年龄结构和活动频次。';
-            }
-        } else {
-            return '感谢提问！关于非遗保护，建议采用数字化建档、价值评估、传播预测等大数据手段，结合AI辅助决策，实现科学化保护与活化传承。';
-        }
+        if (isLoading) return div;
     }
 }
 
@@ -529,6 +553,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 初始化聊天
     initChat();
 
-    // 定时刷新
+    // 定时刷新（每15秒）
     setInterval(() => refreshRealTimeData(), 15000);
 });

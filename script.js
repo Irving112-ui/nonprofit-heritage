@@ -1,5 +1,5 @@
 // ==================== 全局变量 ====================
-const API_URL = 'http://localhost:3000/heritages';
+const API_URL = 'https://69c4845f8a5b6e2dec2aadfa.mockapi.io/:endpoint';
 let heritageData = [];
 let radarChart, trendChart, mapChart;
 let trendData = [65, 72, 88, 95, 102, 118];

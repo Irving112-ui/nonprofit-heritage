@@ -1,4 +1,4 @@
-const API_URL = 'https://你的项目ID.mockapi.io/heritages';  // 请替换为你的 mockapi.io 地址
+const API_URL = 'https://69c496238a5b6e2dec2ae93e.mockapi.io/heritage';  // 请替换为你的 mockapi.io 地址
 let heritageData = [];
 let radarChart, mapChart, provinceChart, graphChart, forecastChart;
 let trendData = [65, 72, 88, 95, 102, 118];  // 历史热度数据

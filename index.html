@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>西部陆海非遗大数据管理系统 | 数字赋能·非遗活化</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="text-2xl font-bold text-blue-800">西部陆海<span class="text-orange-600">非遗大数据</span></div>
+            <div class="space-x-6 flex items-center">
+                <a href="#dashboard" class="hover:text-blue-600">数据看板</a>
+                <a href="#archive" class="hover:text-blue-600">建档模块</a>
+                <a href="#evaluate" class="hover:text-blue-600">价值评估</a>
+                <a href="#predict" class="hover:text-blue-600">传播预测</a>
+                <button id="manageBtn" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+                    <i class="fas fa-plus-circle"></i> 管理非遗
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- 实时数据控制栏 -->
+        <div class="flex justify-end mb-4 space-x-2">
+            <button id="refreshDataBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center">
+                <i class="fas fa-sync-alt mr-2"></i> 刷新实时数据
+            </button>
+            <span class="text-sm text-gray-500 self-center">数据模拟实时更新</span>
+        </div>
+
+        <!-- 1. 数据看板（关键指标卡片） -->
+        <section id="dashboard" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">非遗数据总览</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="statsCards">
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-database text-blue-500 text-3xl"></i><div class="text-2xl font-bold" id="totalHeritageCount">0</div><div>已建档非遗项目</div></div>
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-chart-line text-green-500 text-3xl"></i><div class="text-2xl font-bold" id="avgScore">0</div><div>平均价值评分</div></div>
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-fire text-red-500 text-3xl"></i><div class="text-2xl font-bold" id="totalHeat">0</div><div>全网传播热度</div></div>
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-handshake text-purple-500 text-3xl"></i><div class="text-2xl font-bold" id="partnerCount">0</div><div>合作传承工坊</div></div>
+            </div>
+            <!-- ECharts 地图容器（柱状图替代） -->
+            <div id="mapChart" style="height: 500px; width: 100%;" class="bg-white rounded shadow p-2"></div>
+        </section>
+
+        <!-- 2. 建档模块（非遗卡片列表） -->
+        <section id="archive" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">数字化建档 · 非遗基因库</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="heritageList">
+                <!-- 动态js生成卡片 -->
+            </div>
+        </section>
+
+        <!-- 3. 价值评估模块（雷达图+评分，增加非遗选择下拉框） -->
+        <section id="evaluate" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">非遗价值评估体系</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">选择非遗项目</label>
+                    <select id="evalSelect" class="border rounded p-2 w-full mb-4 bg-white">
+                        <option>加载中...</option>
+                    </select>
+                    <div id="radarChart" style="height: 400px;" class="bg-white rounded shadow p-4"></div>
+                </div>
+                <div class="bg-white rounded shadow p-6">
+                    <h3 class="text-xl font-bold mb-2" id="evalName">--</h3>
+                    <p class="text-gray-600 mb-4">综合价值得分：<span class="text-3xl font-bold text-blue-600" id="evalScore">0</span> / 100</p>
+                    <div id="evalDetails">
+                        <p>文化稀缺性：--</p>
+                        <p>传承活力：--</p>
+                        <p>经济潜力：--</p>
+                    </div>
+                    <button class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" id="genReportBtn">生成评估报告</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 传播预测模块（趋势图+建议） -->
+        <section id="predict" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">传播热度预测</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div id="trendChart" style="height: 400px;" class="bg-white rounded shadow p-4"></div>
+                <div class="bg-white rounded shadow p-6">
+                    <h3 class="text-xl font-bold mb-2">优化建议</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700" id="suggestionsList">
+                        <li>加载建议中...</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white text-center py-4 mt-8">
+        <p>西部陆海新通道非遗大数据管理系统 | 数字赋能·活化传承</p>
+    </footer>
+
+    <!-- 模态框：数字档案详情 -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white rounded-lg w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="text-2xl font-bold" id="modalTitle">数字档案</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <div id="modalContent">
+                <!-- 动态填充内容 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理非遗模态框 -->
+    <div id="manageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white rounded-lg w-11/12 max-w-md p-6">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="text-2xl font-bold">添加非遗项目</h3>
+                <button id="closeManageModal" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <form id="addHeritageForm">
+                <div class="mb-3">
+                    <label class="block text-sm font-medium">非遗名称</label>
+                    <input type="text" id="name" class="border rounded w-full p-2" required>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium">类别</label>
+                    <input type="text" id="category" class="border rounded w-full p-2" required>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium">简介</label>
+                    <textarea id="desc" rows="2" class="border rounded w-full p-2" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium">传承人</label>
+                    <input type="text" id="inheritor" class="border rounded w-full p-2" required>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium">技艺流程</label>
+                    <textarea id="techProcess" rows="2" class="border rounded w-full p-2" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium">当前状态</label>
+                    <input type="text" id="status" class="border rounded w-full p-2" required>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="cancelManage" class="border border-gray-300 px-4 py-2 rounded">取消</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

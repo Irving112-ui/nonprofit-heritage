@@ -1,0 +1,67 @@
+{
+  "heritages": [
+    {
+      "id": 1,
+      "name": "荣昌夏布",
+      "category": "传统技艺",
+      "desc": "国家级非遗，夏布织造技艺",
+      "value": {
+        "culture": 9.2,
+        "vitality": 8.5,
+        "economy": 8.8,
+        "spread": 9.0,
+        "policy": 9.5
+      },
+      "totalScore": 91.2,
+      "details": {
+        "inheritor": "李俭康（国家级代表性传承人）",
+        "techProcess": "绩麻、挽麻团、牵线、穿扣、刷浆、织布等20多道工序",
+        "blockchainId": "0x7B2E...F3A9",
+        "collectDate": "2025-03-15",
+        "status": "传承活力良好，市场需求上升"
+      }
+    },
+    {
+      "id": 2,
+      "name": "铜梁龙舞",
+      "category": "传统舞蹈",
+      "desc": "中华龙舞代表，国家级非遗",
+      "value": {
+        "culture": 9.5,
+        "vitality": 9.0,
+        "economy": 8.2,
+        "spread": 9.8,
+        "policy": 9.0
+      },
+      "totalScore": 92.7,
+      "details": {
+        "inheritor": "黄廷炎（国家级代表性传承人）",
+        "techProcess": "龙具扎制、龙舞套路、音乐伴奏等",
+        "blockchainId": "0x8C4D...A2B1",
+        "collectDate": "2025-03-10",
+        "status": "海外传播热度高，建议开发体验课程"
+      }
+    },
+    {
+      "id": 3,
+      "name": "川江号子",
+      "category": "传统音乐",
+      "desc": "长江流域劳动号子，国家级非遗",
+      "value": {
+        "culture": 9.8,
+        "vitality": 7.5,
+        "economy": 6.5,
+        "spread": 8.0,
+        "policy": 8.5
+      },
+      "totalScore": 81.5,
+      "details": {
+        "inheritor": "曹光裕（市级代表性传承人）",
+        "techProcess": "领唱、合唱、节奏变化",
+        "blockchainId": "0x9E5F...B3C7",
+        "collectDate": "2025-03-01",
+        "status": "传承人老龄化，需加强记录和传播"
+      }
+    }
+  ]
+}

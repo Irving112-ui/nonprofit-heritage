@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>西部陆海非遗大数据管理系统 | AI 赋能·数字活化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 自定义额外样式 */
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .chat-message {
+            border-radius: 1rem;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            max-width: 85%;
+        }
+        .chat-user {
+            background-color: #e2e8f0;
+            align-self: flex-end;
+        }
+        .chat-ai {
+            background-color: #3b82f6;
+            color: white;
+            align-self: flex-start;
+        }
+        .endangered-card {
+            transition: transform 0.2s;
+        }
+        .endangered-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="text-2xl font-bold text-blue-800">西部陆海<span class="text-orange-600">非遗大数据</span><span class="text-sm ml-2 bg-blue-100 text-blue-800 px-2 py-1 rounded-full">AI 2.0</span></div>
+            <div class="space-x-6 flex items-center">
+                <a href="#dashboard" class="hover:text-blue-600">数据看板</a>
+                <a href="#archive" class="hover:text-blue-600">建档模块</a>
+                <a href="#evaluate" class="hover:text-blue-600">价值评估</a>
+                <a href="#predict" class="hover:text-blue-600">传播预测</a>
+                <a href="#ai-assistant" class="hover:text-blue-600">AI助手</a>
+                <button id="manageBtn" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 hidden">
+                    <i class="fas fa-plus-circle"></i> 管理非遗
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- 实时刷新控制栏 -->
+        <div class="flex justify-end mb-4 space-x-2">
+            <button id="refreshDataBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded shadow flex items-center">
+                <i class="fas fa-sync-alt mr-2"></i> 刷新实时数据
+            </button>
+            <span class="text-sm text-gray-500 self-center">数据模拟实时更新</span>
+        </div>
+
+        <!-- 筛选器 -->
+        <div class="mb-4 flex justify-between items-center">
+            <div>
+                <label class="mr-2 font-medium">筛选省份：</label>
+                <select id="provinceFilter" class="border rounded p-1 bg-white">
+                    <option value="all">全部</option>
+                    <option value="重庆">重庆</option>
+                    <option value="四川">四川</option>
+                    <option value="贵州">贵州</option>
+                    <option value="云南">云南</option>
+                    <option value="广西">广西</option>
+                    <option value="甘肃">甘肃</option>
+                    <option value="青海">青海</option>
+                    <option value="宁夏">宁夏</option>
+                    <option value="新疆">新疆</option>
+                    <option value="陕西">陕西</option>
+                    <option value="内蒙古">内蒙古</option>
+                    <option value="海南">海南</option>
+                    <option value="广东">广东</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 关键指标卡片（新增濒危数量） -->
+        <section id="dashboard" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">非遗数据总览</h2>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-database text-blue-500 text-3xl"></i><div class="text-2xl font-bold" id="totalHeritageCount">0</div><div>已建档非遗项目</div></div>
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-chart-line text-green-500 text-3xl"></i><div class="text-2xl font-bold" id="avgScore">0</div><div>平均价值评分</div></div>
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-fire text-red-500 text-3xl"></i><div class="text-2xl font-bold" id="totalHeat">0</div><div>全网传播热度</div></div>
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-handshake text-purple-500 text-3xl"></i><div class="text-2xl font-bold" id="partnerCount">0</div><div>合作传承工坊</div></div>
+                <div class="bg-white p-4 rounded shadow text-center"><i class="fas fa-exclamation-triangle text-yellow-500 text-3xl"></i><div class="text-2xl font-bold" id="endangeredCount">0</div><div>濒危预警项目</div></div>
+            </div>
+        </section>
+
+        <!-- 省级非遗分布柱状图 -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">各省非遗项目数量分布</h2>
+            <div id="provinceChart" style="height: 400px;" class="bg-white rounded shadow p-2"></div>
+        </section>
+
+        <!-- 建档模块（卡片列表） -->
+        <section id="archive" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">数字化建档 · 非遗基因库</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="heritageList"></div>
+        </section>
+
+        <!-- 价值评估模块（雷达图） -->
+        <section id="evaluate" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">非遗价值评估体系</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">选择非遗项目</label>
+                    <select id="evalSelect" class="border rounded p-2 w-full mb-4 bg-white"></select>
+                    <div id="radarChart" style="height: 400px;" class="bg-white rounded shadow p-4"></div>
+                </div>
+                <div class="bg-white rounded shadow p-6">
+                    <h3 class="text-xl font-bold mb-2" id="evalName">--</h3>
+                    <p class="text-gray-600 mb-4">综合价值得分：<span class="text-3xl font-bold text-blue-600" id="evalScore">0</span> / 100</p>
+                    <div id="evalDetails"></div>
+                    <button class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" id="genReportBtn">生成评估报告</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 传承活力预警（美化版） -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">传承活力预警 · 濒危非遗监测</h2>
+            <div id="warningCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </section>
+
+        <!-- 非遗关联图谱 -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">非遗文化关联图谱</h2>
+            <div id="graphChart" style="height: 500px;" class="bg-white rounded shadow p-2"></div>
+        </section>
+
+        <!-- 传播热度趋势+AI预测 -->
+        <section id="predict" class="mb-16">
+            <h2 class="text-3xl font-bold mb-6">传播热度趋势与AI预测</h2>
+            <div id="forecastChart" style="height: 400px;" class="bg-white rounded shadow p-2"></div>
+        </section>
+
+        <!-- AI 多模块区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-16">
+            <!-- AI 保护建议（原有增强） -->
+            <div class="bg-white rounded shadow p-6">
+                <h3 class="text-xl font-bold mb-4"><i class="fas fa-robot text-blue-600 mr-2"></i> AI 保护建议</h3>
+                <div id="aiSuggestions" class="space-y-2">
+                    <ul class="list-disc list-inside text-gray-700"></ul>
+                </div>
+            </div>
+            <!-- AI 文创灵感 -->
+            <div class="bg-white rounded shadow p-6">
+                <h3 class="text-xl font-bold mb-4"><i class="fas fa-palette text-purple-600 mr-2"></i> AI 文创灵感</h3>
+                <div id="aiCreative" class="text-gray-700 space-y-2">
+                    <p>点击下方按钮，为选中的非遗生成文创设计灵感</p>
+                    <button id="creativeBtn" class="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700 mt-2">生成灵感</button>
+                    <div id="creativeResult" class="mt-2 p-2 bg-gray-100 rounded text-sm"></div>
+                </div>
+            </div>
+            <!-- AI 传承路径规划 -->
+            <div class="bg-white rounded shadow p-6">
+                <h3 class="text-xl font-bold mb-4"><i class="fas fa-chalkboard-user text-green-600 mr-2"></i> AI 传承路径规划</h3>
+                <div id="aiPath" class="text-gray-700 space-y-2">
+                    <p>为选中的非遗规划传承人培养路径</p>
+                    <button id="pathBtn" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 mt-2">生成规划</button>
+                    <div id="pathResult" class="mt-2 p-2 bg-gray-100 rounded text-sm"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI 对话助手 -->
+        <section id="ai-assistant" class="mb-16 bg-white rounded shadow p-6">
+            <h2 class="text-2xl font-bold mb-4"><i class="fas fa-comment-dots text-blue-600 mr-2"></i> AI 非遗助手（对话式）</h2>
+            <div class="flex flex-col h-80 overflow-y-auto border rounded p-3 bg-gray-50 mb-3" id="chatBox">
+                <div class="chat-message chat-ai">你好！我是非遗保护AI助手。你可以问我关于非遗保护、传承、传播等问题，我会尽力为你解答。</div>
+            </div>
+            <div class="flex">
+                <input type="text" id="chatInput" class="flex-1 border rounded-l p-2" placeholder="输入你的问题，例如：如何保护川江号子？">
+                <button id="sendChatBtn" class="bg-blue-600 text-white px-4 py-2 rounded-r hover:bg-blue-700">发送</button>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white text-center py-4 mt-8">
+        <p>西部陆海新通道非遗大数据管理系统 | AI 赋能·数字活化 | 大数据模型辅助非遗保护</p>
+    </footer>
+
+    <!-- 模态框：数字档案详情 -->
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white rounded-lg w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="text-2xl font-bold" id="modalTitle">数字档案</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- 管理非遗模态框（仅管理员） -->
+    <div id="manageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden justify-center items-center z-50">
+        <div class="bg-white rounded-lg w-11/12 max-w-md p-6">
+            <div class="flex justify-between items-center border-b pb-2 mb-4">
+                <h3 class="text-2xl font-bold">添加非遗项目</h3>
+                <button id="closeManageModal" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <form id="addHeritageForm">
+                <div class="mb-3"><label class="block text-sm font-medium">非遗名称</label><input type="text" id="name" class="border rounded w-full p-2" required></div>
+                <div class="mb-3"><label class="block text-sm font-medium">类别</label><input type="text" id="category" class="border rounded w-full p-2" required></div>
+                <div class="mb-3"><label class="block text-sm font-medium">省份</label><input type="text" id="province" class="border rounded w-full p-2" required></div>
+                <div class="mb-3"><label class="block text-sm font-medium">简介</label><textarea id="desc" rows="2" class="border rounded w-full p-2" required></textarea></div>
+                <div class="mb-3"><label class="block text-sm font-medium">传承人</label><input type="text" id="inheritor" class="border rounded w-full p-2" required></div>
+                <div class="mb-3"><label class="block text-sm font-medium">技艺流程</label><textarea id="techProcess" rows="2" class="border rounded w-full p-2" required></textarea></div>
+                <div class="mb-3"><label class="block text-sm font-medium">当前状态</label><input type="text" id="status" class="border rounded w-full p-2" required></div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="cancelManage" class="border border-gray-300 px-4 py-2 rounded">取消</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

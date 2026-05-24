@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>西部陆海 · 非遗大数据中枢 | 实时态势管理系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 为新增的 AI 对话板块补充必要样式（避免依赖外部 style.css 中可能缺失的规则） */
+        .chat-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+        .chat-bubble-user {
+            background: rgba(59, 130, 246, 0.3);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            align-self: flex-end;
+            border-radius: 20px 20px 4px 20px;
+        }
+        .chat-bubble-ai {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            align-self: flex-start;
+            border-radius: 20px 20px 20px 4px;
+        }
+        .chat-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .chat-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        .chat-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(59,130,246,0.5);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="text-white bg-[#020617]">
+    <div class="fixed-bg"></div>
+
+    <!-- ⬇️ Hero 头部已移动至页面最前面 -->
+    <header class="relative h-[75vh] flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 z-0 pointer-events-none">
+            <div class="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] animate-pulse"></div>
+            <div class="absolute bottom-1/4 right-1/3 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] animate-pulse"></div>
+        </div>
+
+        <div class="relative z-10 text-center space-y-6 px-4">
+            <span class="px-5 py-1 border border-blue-400/30 text-blue-300 text-xs rounded-full tracking-[0.4em] backdrop-blur-md bg-blue-500/10 uppercase">Digital Cultural Heritage</span>
+            <h2 class="text-5xl md:text-6xl font-bold font-[ZCOOL XiaoWei] tracking-tight hero-title">连接陆海 · 守护基因</h2>
+            <p class="text-lg text-slate-300 font-light max-w-2xl mx-auto border-t border-b border-white/10 py-3">西部陆海新通道非物质文化遗产大数据实时监测与数字活化系统</p>
+            
+            <div class="flex flex-wrap justify-center gap-6 mt-12 relative z-30">
+                <a href="#map-section" class="nav-card group">
+                    <div class="nav-card-icon bg-blue-500/20 text-blue-400 group-hover:bg-blue-600 group-hover:text-white"><i class="fas fa-map-marked-alt"></i></div>
+                    <span class="font-bold tracking-widest text-xs">实时态势</span>
+                </a>
+                <a href="#archive" class="nav-card group">
+                    <div class="nav-card-icon bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white"><i class="fas fa-dna"></i></div>
+                    <span class="font-bold tracking-widest text-xs">数字基因</span>
+                </a>
+                <a href="#resource-hub" class="nav-card group">
+                    <div class="nav-card-icon bg-orange-500/20 text-orange-400 group-hover:bg-orange-600 group-hover:text-white"><i class="fas fa-database"></i></div>
+                    <span class="font-bold tracking-widest text-xs">增补模型</span>
+                </a>
+            </div>
+        </div>
+        <div class="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-[#020617] to-transparent z-20 pointer-events-none"></div>
+    </header>
+
+    <!-- 导航栏 (sticky 定位，滚动后会吸附在顶部) -->
+    <nav class="bg-white/5 backdrop-blur-2xl shadow-lg sticky top-0 z-50 border-b border-white/10">
+        <div class="max-w-[1600px] mx-auto px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <i class="fas fa-fingerprint text-white"></i>
+                </div>
+                <h1 class="text-xl font-bold font-[ZCOOL XiaoWei] tracking-wider">西部陆海 · 非遗数字中枢</h1>
+            </div>
+            <div class="flex items-center gap-8 text-sm font-medium text-white/80">
+                <a href="#map-section" class="hover:text-blue-400 transition">实时态势</a>
+                <a href="#analysis-section" class="hover:text-blue-400 transition">多维分析</a>
+                <a href="#archive" class="hover:text-blue-400 transition">基因库</a>
+                <a href="#resource-hub" class="hover:text-blue-400 transition">增补模型</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-[1600px] mx-auto px-8 pb-20 space-y-16 relative z-10">
+        
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="glass-card p-8 rounded-[32px] border-l-4 border-blue-500">
+                <p class="text-xs text-white/50 font-bold uppercase tracking-widest">基因建档总数</p>
+                <h3 id="totalCount" class="text-5xl font-black mt-2 text-blue-400">--</h3>
+            </div>
+            <div class="glass-card p-8 rounded-[32px] border-l-4 border-emerald-500">
+                <p class="text-xs text-white/50 font-bold uppercase tracking-widest">文化活化均分</p>
+                <h3 id="avgScore" class="text-5xl font-black mt-2 text-emerald-400">--</h3>
+            </div>
+            <div class="glass-card p-8 rounded-[32px] border-l-4 border-orange-500">
+                <p class="text-xs text-white/50 font-bold uppercase tracking-widest">数字出海热度</p>
+                <h3 class="text-5xl font-black mt-2 text-orange-400">2.1B</h3>
+            </div>
+            <div class="glass-card p-8 rounded-[32px] border-l-4 border-red-500">
+                <p class="text-xs text-white/50 font-bold uppercase tracking-widest">监测预警项</p>
+                <h3 class="text-5xl font-black mt-2 text-red-400">3</h3>
+            </div>
+        </section>
+
+        <section id="map-section" class="grid grid-cols-1 lg:grid-cols-3 gap-8 scroll-mt-24">
+            <div class="lg:col-span-2 glass-card rounded-[40px] p-8 min-h-[600px]">
+                <div id="mapChart" style="height: 550px; width: 100%;"></div>
+            </div>
+            <div class="bg-slate-950/80 backdrop-blur-xl rounded-[40px] p-8 h-[600px] flex flex-col border border-white/10 shadow-2xl">
+                <h3 id="provinceDetailTitle" class="text-xl font-bold mb-6 text-blue-400 flex items-center">
+                    <i class="fas fa-satellite-dish mr-3 animate-pulse"></i>区域数据穿透
+                </h3>
+                <div id="provinceList" class="flex-1 overflow-y-auto space-y-4 custom-scrollbar">
+                    <p class="text-white/40 italic text-sm text-center mt-20">点击地图查看详情...</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="analysis-section" class="grid grid-cols-1 lg:grid-cols-2 gap-8 scroll-mt-24">
+            <div class="glass-card rounded-[40px] p-8 h-[500px]">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold"><i class="fas fa-chart-pie mr-3 text-emerald-400"></i>价值评估模型</h3>
+                    <select id="evalSelect"
+class="bg-white border border-white/20 rounded-lg px-3 py-1 text-xs outline-none text-black">
+</select>
+                </div>
+                <div id="radarChart" style="height: 380px; width: 100%;"></div>
+            </div>
+            <div class="glass-card rounded-[40px] p-8 h-[500px]">
+                <h3 class="text-xl font-bold mb-6"><i class="fas fa-project-diagram mr-3 text-purple-400"></i>非遗数字关系图谱</h3>
+                <div id="graphChart" style="height: 380px; width: 100%;"></div>
+            </div>
+        </section>
+
+        <section id="resource-hub" class="grid grid-cols-1 lg:grid-cols-3 gap-8 scroll-mt-24">
+            <div class="lg:col-span-2 glass-card rounded-[40px] p-12 flex flex-col items-center justify-center text-center">
+                <div class="w-20 h-20 bg-blue-600 rounded-[25px] flex items-center justify-center mb-6 shadow-2xl rotate-6">
+                    <i class="fas fa-landmark text-3xl text-white"></i>
+                </div>
+                <h3 class="text-3xl font-bold font-[ZCOOL XiaoWei] mb-4">中国非物质文化遗产库</h3>
+                <p class="text-white/60 mb-8 max-w-md">官方名录需在安全窗口中访问，本中枢已建立实时数据映射。</p>
+                <a href="https://www.ihchina.cn/project.html" target="_blank" class="px-10 py-4 bg-blue-600 rounded-2xl font-bold hover:bg-blue-500 transition">进入名录中心</a>
+            </div>
+            <div class="glass-card rounded-[40px] p-8">
+                <h3 class="text-xl font-bold mb-6"><i class="fas fa-plus-circle mr-3 text-orange-500"></i>实时增补模型</h3>
+                <form id="dataInputForm" class="space-y-4">
+                    <input type="text" id="newName" placeholder="项目名称" required class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 outline-none">
+                    <input type="text" id="newProvince" placeholder="所属省份" required class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 outline-none">
+                    <input type="number" id="newScore" placeholder="价值分 (0-100)" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 outline-none">
+                    <textarea id="newDesc" rows="4" placeholder="详细描述..." class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-4 outline-none"></textarea>
+                    <button type="submit" class="w-full py-4 bg-blue-600 rounded-2xl font-bold hover:bg-blue-500 transition">同步建档</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="archive" class="scroll-mt-24 pb-16">
+            <div class="flex items-center mb-10">
+                <div class="w-2 h-10 bg-blue-500 rounded-full mr-4 shadow-lg shadow-blue-500/50"></div>
+                <h2 class="text-3xl font-bold font-[ZCOOL XiaoWei]">数字基因库 · 视觉档案</h2>
+            </div>
+            <div id="heritageList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"></div>
+        </section>
+
+        <!-- AI 非遗智脑对话板块 -->
+        <section id="ai-assistant" class="chat-glass p-8 scroll-mt-24">
+            <div class="flex items-center mb-6">
+                <div class="w-2 h-10 bg-cyan-400 rounded-full mr-4 shadow-lg shadow-cyan-400/50"></div>
+                <h2 class="text-2xl font-bold font-[ZCOOL XiaoWei]"><i class="fas fa-comment-dots text-cyan-400 mr-3"></i>非遗智脑对话</h2>
+            </div>
+            <div id="chatBox" class="h-64 overflow-y-auto chat-scrollbar bg-white/5 rounded-2xl p-4 mb-4 flex flex-col space-y-3">
+                <div class="text-white/40 text-sm italic text-center mt-20">向非遗智脑提问，获取保护与传承策略...</div>
+            </div>
+            <div class="flex gap-3">
+                <input type="text" id="chatInput" placeholder="询问非遗保护、传承策略..." class="flex-1 bg-white/10 border border-white/20 rounded-xl px-5 py-3 text-sm outline-none focus:border-cyan-400 transition">
+                <button id="sendChatBtn" class="bg-cyan-600 hover:bg-cyan-500 px-6 rounded-xl text-white font-medium transition flex items-center gap-2">
+                    <i class="fas fa-paper-plane"></i> 发送
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-black/90 backdrop-blur-md hidden z-[100] flex justify-center items-center p-4">
+        <div class="bg-white rounded-[40px] max-w-2xl w-full overflow-hidden text-slate-800">
+            <div id="modalHeader" class="h-64 bg-cover bg-center relative">
+                <button id="closeModal" class="absolute top-6 right-6 w-12 h-12 bg-white/20 text-white rounded-full text-2xl">×</button>
+            </div>
+            <div class="p-10">
+                <h3 id="modalTitle" class="text-3xl font-bold mb-4 font-[ZCOOL XiaoWei]"></h3>
+                <div id="modalContent" class="text-slate-600 leading-relaxed text-lg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

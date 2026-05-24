@@ -1,0 +1,118 @@
+/* style.css */
+body { 
+    font-family: 'Noto Sans SC', sans-serif; 
+    scroll-behavior: smooth; 
+    background-color: #020617; 
+}
+
+/* 全屏固定背景 */
+.fixed-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1; /* 确保在最底层 */
+    background: url('微信图片_20260423183603_212_12.jpg') center/cover no-repeat;
+    filter: brightness(0.4) contrast(1.2) saturate(0.8); 
+}
+
+/* Hero 区域动感蒙版 */
+header.relative {
+    background: radial-gradient(circle at center, rgba(30, 41, 59, 0.5) 0%, rgba(2, 6, 23, 0.9) 100%);
+    z-index: 1;
+}
+
+/* 文字渐变与动画 */
+.hero-title {
+    background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 10px 30px rgba(0,0,0,0.8));
+    animation: title-float 3s ease-in-out infinite;
+}
+
+/* 导航卡片修复：提升层级并确保 pointer-events 正常 */
+.nav-card {
+    position: relative;
+    z-index: 50; /* 提升至光晕层之上 */
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 1.5rem;
+    border-radius: 24px;
+    width: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+
+.nav-card:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-8px);
+    border-color: rgba(59, 130, 246, 0.8);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
+}
+
+.nav-card-icon {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25rem; margin-bottom: 0.75rem;
+    transition: all 0.3s;
+}
+
+/* 磨砂玻璃卡片 */
+.glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(25px) saturate(160%);
+    -webkit-backdrop-filter: blur(25px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* 基因库 3D 档案卡片 */
+.archive-card-wrapper {
+    perspective: 1200px;
+    height: 420px;
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeIn 0.8s ease forwards;
+}
+
+.archive-card {
+    position: relative; width: 100%; height: 100%;
+    border-radius: 36px; overflow: hidden; cursor: pointer;
+    background: #000; transition: transform 0.2s ease-out;
+    transform-style: preserve-3d;
+}
+
+.card-image-bg {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    transition: transform 1s, filter 1s; z-index: 1;
+}
+
+.archive-card:hover .card-image-bg {
+    transform: scale(1.15);
+    filter: blur(8px) brightness(0.6);
+}
+
+.card-info {
+    position: relative; z-index: 10;
+    height: 100%; padding: 2.5rem;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    color: white; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85));
+}
+
+/* 动画定义 */
+@keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+@keyframes title-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+/* 滚动条 */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
